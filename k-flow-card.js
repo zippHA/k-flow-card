@@ -1,6 +1,9 @@
-// k-flow-card.js – Production v1.0.0
-// Animated energy flow card for Home Assistant
-// No token needed – uses hass.states directly
+// k-flow-card.js – v1.0.2
+// Fixes:
+//   - Battery flow lines default colour = grey (not green)
+//   - Battery line dynamic colour: grey idle, blue charging, orange/dark-orange/red discharging
+//   - Grid flow animation direction corrected (import = Grid→INV, export = INV→Grid)
+//   - Battery lines hidden below 10 W (as in original), grey & slow between 10‑50 W
 class KFlowCard extends HTMLElement {
   constructor() {
     super();
@@ -261,10 +264,12 @@ class KFlowCard extends HTMLElement {
           <path d="M 119,175 H 151 Q 156,175 156,180 V 205 Q 156,210 168,210 H 205" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" opacity="0.18"/>
           <path d="M 397,175 H 365 Q 354,175 354,183 V 202 Q 354,210 346,210 H 315" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" opacity="0.18"/>
           <path d="M 260,265 V 327" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" opacity="0.18"/>
+          <!-- Grid flow lines – CORRECTED direction: Grid→INV for import, INV→Grid for export -->
           <path id="flowGridIn" d="M 397,175 H 365 Q 354,175 354,183 V 202 Q 354,210 346,210 H 315" fill="none" stroke="#FF2929" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.8s" repeatCount="indefinite"/></path>
           <path id="flowGridOut" d="M 397,175 H 365 Q 354,175 354,183 V 202 Q 354,210 346,210 H 315" fill="none" stroke="#FF2929" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="0.8s" repeatCount="indefinite"/></path>
-          <path id="flowBattIn" d="M 119,175 H 151 Q 156,175 156,180 V 205 Q 156,210 168,210 H 205" fill="none" stroke="#3ce878" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="0.8s" repeatCount="indefinite"/></path>
-          <path id="flowBattOut" d="M 119,175 H 151 Q 156,175 156,180 V 205 Q 156,210 168,210 H 205" fill="none" stroke="#3ce878" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.8s" repeatCount="indefinite"/></path>
+          <!-- Battery flow lines – default grey, dynamics override -->
+          <path id="flowBattIn" d="M 119,175 H 151 Q 156,175 156,180 V 205 Q 156,210 168,210 H 205" fill="none" stroke="#8b949e" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="4.0s" repeatCount="indefinite"/></path>
+          <path id="flowBattOut" d="M 119,175 H 151 Q 156,175 156,180 V 205 Q 156,210 168,210 H 205" fill="none" stroke="#8b949e" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="0" to="-24" dur="4.0s" repeatCount="indefinite"/></path>
           <path id="flowInvLoad" d="M 260,327 V 265" fill="none" stroke="#29c4f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="0.8s" repeatCount="indefinite"/></path>
           <g id="battGlow">
             <rect x="77" y="127" width="14" height="9" rx="3" fill="url(#battCapGrad)"/>
@@ -426,35 +431,72 @@ class KFlowCard extends HTMLElement {
       if (pvGroup) pvGroup.innerHTML = this._buildPvWaveHTML(sun.bx, sun.by, pvTotal);
     }
 
+    // ── Flow lines speed & colour ──────────────────────────
     const flowDur = (w) => Math.max(0.5, 3.0 - (Math.min(Math.abs(w), 8000) / 8000) * 2.5).toFixed(2) + 's';
-    const setFlow = (id, show, watts) => {
+    const setFlow = (id, show, watts, durStr, color) => {
       const el = getEl(id);
       if (!el) return;
       el.setAttribute('opacity', show ? '1' : '0');
       el.style.display = show ? '' : 'none';
-      if (show && watts !== undefined) {
+      if (show && durStr !== undefined) {
         const anim = el.querySelector('animate');
-        if (anim) anim.setAttribute('dur', flowDur(watts));
+        if (anim) anim.setAttribute('dur', durStr);
       }
+      if (color !== undefined) el.setAttribute('stroke', color);
     };
 
+    const absBattPwr = Math.abs(battPwr);
+    const isCharging = battPwr >= 0;
+    const showBattIn = battPwr > 10;
+    const showBattOut = battPwr < -10;
+
+    let battLineColor = '#8b949e';
+    let battDur = '4.0s';
+    let battShowIn = false;
+    let battShowOut = false;
+
+    if (absBattPwr < 10) {
+      // hide completely (original kanc.html behaviour)
+      battShowIn = false;
+      battShowOut = false;
+    } else if (absBattPwr < 50) {
+      // show but grey and very slow
+      battShowIn = showBattIn;
+      battShowOut = showBattOut;
+      battLineColor = '#8b949e';
+      battDur = '4.0s';
+    } else {
+      // active flow, colour based on direction
+      battShowIn = showBattIn;
+      battShowOut = showBattOut;
+      battDur = flowDur(absBattPwr);
+      if (isCharging) {
+        battLineColor = '#2b59ff';
+      } else {
+        if (absBattPwr < 1000) battLineColor = '#f39c4b';
+        else if (absBattPwr < 2500) battLineColor = '#e67e22';
+        else battLineColor = '#f85149';
+      }
+    }
+
+    setFlow('flowBattIn', battShowIn, absBattPwr, battDur, battLineColor);
+    setFlow('flowBattOut', battShowOut, absBattPwr, battDur, battLineColor);
+
     const showGridIn = gridActive > 10, showGridOut = gridActive < -10;
-    const showBattIn = battPwr > 10, showBattOut = battPwr < -10;
     const showInvLoad = load > 10;
 
-    setFlow('flowGridIn', showGridIn, gridActive);
-    setFlow('flowGridOut', showGridOut, Math.abs(gridActive));
-    setFlow('flowBattIn', showBattIn, battPwr);
-    setFlow('flowBattOut', showBattOut, Math.abs(battPwr));
-    setFlow('flowInvLoad', showInvLoad, load);
+    // Grid lines – colour always red, speed variable
+    setFlow('flowGridIn', showGridIn, gridActive, flowDur(gridActive), '#FF2929');
+    setFlow('flowGridOut', showGridOut, Math.abs(gridActive), flowDur(Math.abs(gridActive)), '#FF2929');
 
+    // Home line – dominant source colour
     const absGrid = Math.abs(gridActive);
     const absBatt = Math.abs(battPwr < -10 ? battPwr : 0);
     const domColor = (absGrid >= pvTotal && absGrid >= absBatt) ? '#f39c4b' :
                      (absBatt >= pvTotal) ? '#f39c4b' : '#f4d03f';
-    const invLoadEl = getEl('flowInvLoad');
-    if (invLoadEl) invLoadEl.setAttribute('stroke', domColor);
+    setFlow('flowInvLoad', showInvLoad, load, flowDur(load), domColor);
 
+    // ── Battery fill shape ─────────────────────────────────
     const fill = this._battFill(battSoc);
     const bf = getEl('battFillBar');
     if (bf) { bf.setAttribute('y', fill.y); bf.setAttribute('height', fill.height); bf.setAttribute('fill', fill.color); bf.setAttribute('filter', fill.filter); }
@@ -463,35 +505,36 @@ class KFlowCard extends HTMLElement {
     const fcBv = getEl('fcBattVal');
     if (fcBv) { fcBv.textContent = battSoc + '%'; fcBv.setAttribute('fill', fill.textColor); }
     const bolt = getEl('battBoltGroup');
-    if (bolt) bolt.setAttribute('opacity', showBattIn ? '1' : '0');
+    if (bolt) bolt.setAttribute('opacity', (isCharging && absBattPwr >= 10) ? '1' : '0');
 
-    const absPwr = Math.abs(battPwr);
-    const isCharging = battPwr >= 0;
+    // ── Pwr bar ────────────────────────────────────────────
     const pwrBar = getEl('pwrBar');
     if (pwrBar) {
-      pwrBar.style.width = Math.min(absPwr / 6000 * 100, 100).toFixed(1) + '%';
-      if (absPwr < 50) pwrBar.style.background = '#8b949e';
-      else if (isCharging) pwrBar.style.background = '#29c4f6';
+      pwrBar.style.width = Math.min(absBattPwr / 6000 * 100, 100).toFixed(1) + '%';
+      if (absBattPwr < 50) pwrBar.style.background = '#8b949e';
+      else if (isCharging) pwrBar.style.background = '#2b59ff';
       else {
-        const pct = (absPwr / 6000 * 100);
+        const pct = (absBattPwr / 6000 * 100);
         pwrBar.style.background = 'linear-gradient(to right, #f4d03f, #f39c4b ' + (pct * 0.5).toFixed(0) + '%, #f85149)';
       }
     }
 
+    // ── Status badge ───────────────────────────────────────
     const badge = getEl('battStatusBadge');
     if (badge) {
-      badge.textContent = absPwr < 50 ? 'IDLE' : (isCharging ? 'CHG' : 'DISCHG');
-      badge.style.color = absPwr < 50 ? '#8b949e' : (isCharging ? '#00d7ff' : '#3ce878');
-      badge.style.background = absPwr < 50 ? '#21262d' : (isCharging ? 'rgba(0,215,255,.14)' : 'rgba(60,232,120,.14)');
+      badge.textContent = absBattPwr < 50 ? 'IDLE' : (isCharging ? 'CHG' : 'DISCHG');
+      badge.style.color = absBattPwr < 50 ? '#8b949e' : (isCharging ? '#00d7ff' : '#3ce878');
+      badge.style.background = absBattPwr < 50 ? '#21262d' : (isCharging ? 'rgba(0,215,255,.14)' : 'rgba(60,232,120,.14)');
     }
 
+    // ── Endurance ──────────────────────────────────────────
     const remWh = (remCap / 314) * 16076, totalWh = 16076;
     let endText = '--', endColor = '#8b949e', endSub = 'standby', endSubColor = '#8b949e55';
-    if (isCharging && absPwr > 10) {
-      const eta = Math.max(0, (totalWh - remWh) / absPwr);
+    if (isCharging && absBattPwr > 10) {
+      const eta = Math.max(0, (totalWh - remWh) / absBattPwr);
       endText = 'ETA ' + this._fmtTime(eta); endColor = '#00d7ff'; endSub = 'to full'; endSubColor = '#00d7ff88';
-    } else if (!isCharging && absPwr > 10) {
-      const left = Math.max(0, remWh / absPwr);
+    } else if (!isCharging && absBattPwr > 10) {
+      const left = Math.max(0, remWh / absBattPwr);
       const ec = left >= 5 ? '#4ade80' : '#f85149';
       endText = this._fmtTime(left); endColor = ec; endSub = 'remaining'; endSubColor = ec + '88';
     }
@@ -499,6 +542,7 @@ class KFlowCard extends HTMLElement {
     if (fe) { fe.textContent = endText; fe.setAttribute('fill', endColor); }
     if (fs) { fs.textContent = endSub; fs.setAttribute('fill', endSubColor); }
 
+    // ── Inverter & other labels ────────────────────────────
     const invLoadPct = Math.min(load / 6000 * 100, 100).toFixed(0);
     const invLoadColor = invLoadPct <= 50 ? '#3fb950' : '#f39c4b';
     const invTempColor = invTemp <= 45 ? '#58a6ff' : invTemp <= 55 ? '#f39c4b' : '#f85149';
@@ -512,6 +556,7 @@ class KFlowCard extends HTMLElement {
       invRect.style.filter = load > 10 ? 'drop-shadow(0 0 10px #f4a93b)' : 'drop-shadow(0 0 4px #f4a93b66)';
     }
 
+    // ── Grid node glow ─────────────────────────────────────
     const noGrid = Math.abs(gridActive) < 10;
     const gridRing = getEl('fcGridRing');
     if (gridRing) {
@@ -524,6 +569,7 @@ class KFlowCard extends HTMLElement {
     const gb = getEl('gridGlowBorder');
     if (gb) gb.setAttribute('opacity', noGrid ? '0' : '1');
 
+    // ── Home node ──────────────────────────────────────────
     const homeBox = getEl('homeBoxGroup');
     const loadRing = getEl('fcLoadRing');
     if (loadRing) {
@@ -534,30 +580,30 @@ class KFlowCard extends HTMLElement {
     const lv = getEl('fcLoadVal');
     if (lv) { lv.textContent = load >= 1000 ? (load / 1000).toFixed(2) + ' kW' : load.toFixed(0) + ' W'; lv.setAttribute('fill', load > 10 ? domColor : '#8b949e'); }
 
+    // ── PV1/PV2 ────────────────────────────────────────────
     const e1 = getEl('pv1FlowVal'), e2 = getEl('pv2FlowVal');
     if (e1) e1.textContent = pv1 >= 1000 ? (pv1 / 1000).toFixed(2) + ' kW' : pv1.toFixed(0) + ' W';
     if (e2) e2.textContent = pv2 >= 1000 ? (pv2 / 1000).toFixed(2) + ' kW' : pv2.toFixed(0) + ' W';
 
+    // ── Battery stats ──────────────────────────────────────
     ['bTemp1', 'bTemp2', 'bMos'].forEach((id, i) => {
       const el = getEl(id);
       if (el) el.textContent = [temp1, temp2, mos][i].toFixed(1) + ' °C';
       if (el) el.style.color = this._tempColor([temp1, temp2, mos][i]);
     });
-    const minCellEl = getEl('bMinCell'), maxCellEl = getEl('bMaxCell');
-    if (minCellEl) minCellEl.textContent = minCell.toFixed(3) + ' V';
-    if (maxCellEl) maxCellEl.textContent = maxCell.toFixed(3) + ' V';
-    const battDisEl = getEl('invBattDis2');
-    if (battDisEl) battDisEl.textContent = battDis + ' kWh';
+    getEl('bMinCell').textContent = minCell.toFixed(3) + ' V';
+    getEl('bMaxCell').textContent = maxCell.toFixed(3) + ' V';
+    getEl('invBattDis2').textContent = battDis + ' kWh';
 
-    ['invTodayPv', 'invTodayBattChg', 'invTodayLoad'].forEach((id, i) => {
-      const el = getEl(id);
-      if (el) el.textContent = [todayPv, todayBattChg, todayLoad][i] + ' kWh';
-    });
+    // ── GoodWe summary ─────────────────────────────────────
+    getEl('invTodayPv').textContent = todayPv + ' kWh';
+    getEl('invTodayBattChg').textContent = todayBattChg + ' kWh';
+    getEl('invTodayLoad').textContent = todayLoad + ' kWh';
     const invRemCap = getEl('invRemCap');
     if (invRemCap) { invRemCap.textContent = remCap.toFixed(1) + ' Ah'; invRemCap.style.color = this._remCapColor((remCap / 314) * 100); }
-    const gi = getEl('gridImportVal');
-    if (gi) gi.textContent = gridImport.toFixed(2) + ' kWh';
+    getEl('gridImportVal').textContent = gridImport.toFixed(2) + ' kWh';
 
+    // ── PV blocks ──────────────────────────────────────────
     const pvBlocks = getEl('pvBlocks');
     if (pvBlocks) {
       const maxW = 7500, total = 20, lit = Math.round((pvTotal / maxW) * total);
@@ -570,10 +616,10 @@ class KFlowCard extends HTMLElement {
       pvBlocks.innerHTML = html;
     }
 
-    const bc = getEl('battCurrFlow'), bp = getEl('battPwrFlow'), bv = getEl('battVoltageFlow');
-    if (bc) bc.textContent = battCurr.toFixed(1) + ' A';
-    if (bp) bp.textContent = absPwr.toFixed(0) + ' W';
-    if (bv) bv.textContent = battVolt.toFixed(1) + ' V';
+    // ── Battery current/power labels ────────────────────────
+    getEl('battCurrFlow').textContent = battCurr.toFixed(1) + ' A';
+    getEl('battPwrFlow').textContent = absBattPwr.toFixed(0) + ' W';
+    getEl('battVoltageFlow').textContent = battVolt.toFixed(1) + ' V';
   }
 }
 
