@@ -1,9 +1,6 @@
-// k-flow-card.js – v1.0.2
-// Fixes:
-//   - Battery flow lines default colour = grey (not green)
-//   - Battery line dynamic colour: grey idle, blue charging, orange/dark-orange/red discharging
-//   - Grid flow animation direction corrected (import = Grid→INV, export = INV→Grid)
-//   - Battery lines hidden below 10 W (as in original), grey & slow between 10‑50 W
+// k-flow-card.js – v1.0.5 (Centered vertical drops for battery & grid)
+// Place grid-icon.png and home-icon.png in /config/www/
+
 class KFlowCard extends HTMLElement {
   constructor() {
     super();
@@ -188,7 +185,7 @@ class KFlowCard extends HTMLElement {
         <span id="battStatusBadge" style="margin-left:auto;font-size:.5rem;font-weight:700;letter-spacing:1.5px;padding:1px 8px;border-radius:8px;background:#21262d;color:#8b949e;text-transform:uppercase;">IDLE</span>
       </div>
       <div style="width:100%;max-width:520px;margin:0 auto;">
-        <svg id="flowSvg" viewBox="0 0 520 430" style="width:100%;display:block;">
+        <svg id="flowSvg" viewBox="0 0 520 470" style="width:100%;display:block;">
           <defs>
             <filter id="arcSunF" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="7"/></filter>
             <filter id="arcSunF2" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="3"/></filter>
@@ -223,13 +220,6 @@ class KFlowCard extends HTMLElement {
             <filter id="battGlowGreen"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             <filter id="battGlowCyan"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             <filter id="battGlowBolt"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            <linearGradient id="nodeBezelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#333"/><stop offset="20%" stop-color="#888"/><stop offset="50%" stop-color="#aaa"/><stop offset="80%" stop-color="#888"/><stop offset="100%" stop-color="#333"/>
-            </linearGradient>
-            <linearGradient id="nodeGlassRef" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="white" stop-opacity="0.15"/><stop offset="100%" stop-color="white" stop-opacity="0"/>
-            </linearGradient>
-            <filter id="nodeGlowRed"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
           </defs>
           <ellipse id="skyAura" cx="260" cy="84" rx="230" ry="110" fill="url(#dynAuraG)"/>
           <path d="M 35,78 Q 260,-45 485,78 Z" fill="rgba(30,100,200,.05)"/>
@@ -261,50 +251,53 @@ class KFlowCard extends HTMLElement {
           <rect id="arcPvLabelRect" x="162" y="22" width="96" height="26" rx="13" fill="rgba(255,200,50,.22)" stroke="rgba(255,210,60,.5)" stroke-width="1.2"/>
           <text id="arcPvLabelText" x="210" y="39" text-anchor="middle" fill="rgba(255,235,110,.98)" font-size="13" font-weight="800">0 W ⚡</text>
           <g id="pvFlowGroup"></g>
-          <path d="M 119,175 H 151 Q 156,175 156,180 V 205 Q 156,210 168,210 H 205" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" opacity="0.18"/>
-          <path d="M 397,175 H 365 Q 354,175 354,183 V 202 Q 354,210 346,210 H 315" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" opacity="0.18"/>
+
+          <!-- Battery track (centered vertical drop) -->
+          <path d="M 59,175 H 126 Q 132,175 132,180 V 205 Q 132,210 138,210 H 205" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" opacity="0.18"/>
+          <!-- Grid track (centered vertical drop) -->
+          <path d="M 420,175 H 368 Q 362,175 362,180 V 202 Q 362,210 368,210 H 315" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" opacity="0.18"/>
+          <!-- Home track -->
           <path d="M 260,265 V 327" fill="none" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" opacity="0.18"/>
-          <!-- Grid flow lines – CORRECTED direction: Grid→INV for import, INV→Grid for export -->
-          <path id="flowGridIn" d="M 397,175 H 365 Q 354,175 354,183 V 202 Q 354,210 346,210 H 315" fill="none" stroke="#FF2929" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.8s" repeatCount="indefinite"/></path>
-          <path id="flowGridOut" d="M 397,175 H 365 Q 354,175 354,183 V 202 Q 354,210 346,210 H 315" fill="none" stroke="#FF2929" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="0.8s" repeatCount="indefinite"/></path>
-          <!-- Battery flow lines – default grey, dynamics override -->
-          <path id="flowBattIn" d="M 119,175 H 151 Q 156,175 156,180 V 205 Q 156,210 168,210 H 205" fill="none" stroke="#8b949e" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="4.0s" repeatCount="indefinite"/></path>
-          <path id="flowBattOut" d="M 119,175 H 151 Q 156,175 156,180 V 205 Q 156,210 168,210 H 205" fill="none" stroke="#8b949e" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="0" to="-24" dur="4.0s" repeatCount="indefinite"/></path>
-          <path id="flowInvLoad" d="M 260,327 V 265" fill="none" stroke="#29c4f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="0.8s" repeatCount="indefinite"/></path>
-          <g id="battGlow">
-            <rect x="77" y="127" width="14" height="9" rx="3" fill="url(#battCapGrad)"/>
-            <rect x="79" y="128" width="10" height="3" rx="1.5" fill="rgba(255,255,255,0.45)"/>
-            <rect x="49" y="135" width="70" height="132" rx="10" fill="url(#battShellGrad)"/>
-            <rect x="51" y="137" width="66" height="7" rx="4" fill="url(#battCapGrad)"/>
-            <rect x="51" y="258" width="66" height="9" rx="4" fill="url(#battCapGrad)"/>
-            <rect x="53" y="145" width="62" height="118" rx="8" fill="#0f1214"/>
-            <rect id="battFillBar" x="53" y="263" width="62" height="0" rx="0" fill="#3fb950" clip-path="url(#battBodyClip)"/>
-            <rect id="battFillHL" x="53" y="263" width="62" height="0" rx="0" fill="url(#battFillHighlight)" clip-path="url(#battBodyClip)" style="pointer-events:none"/>
-            <rect x="49" y="135" width="70" height="132" rx="10" fill="url(#battGlassBody)" style="pointer-events:none"/>
-            <g id="battBoltGroup" opacity="0">
-              <polygon points="86,176 74,199 82,199 77,223 93,195 85,195 97,176" fill="#1a4aff" stroke="rgba(100,150,255,.5)" stroke-width="0.8" filter="url(#battGlowBolt)">
-                <animate attributeName="opacity" values="0.5;1;0.5" dur="1.0s" repeatCount="indefinite"/>
-              </polygon>
+
+          <!-- Grid flow lines (centered) -->
+          <path id="flowGridIn" d="M 420,175 H 368 Q 362,175 362,180 V 202 Q 362,210 368,210 H 315" fill="none" stroke="#FF2929" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.8s" repeatCount="indefinite"/></path>
+          <path id="flowGridOut" d="M 420,175 H 368 Q 362,175 362,180 V 202 Q 362,210 368,210 H 315" fill="none" stroke="#FF2929" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="0.8s" repeatCount="indefinite"/></path>
+
+          <!-- Battery flow lines (centered) -->
+          <path id="flowBattIn" d="M 59,175 H 126 Q 132,175 132,180 V 205 Q 132,210 138,210 H 205" fill="none" stroke="#8b949e" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="4.0s" repeatCount="indefinite"/></path>
+          <path id="flowBattOut" d="M 59,175 H 126 Q 132,175 132,180 V 205 Q 132,210 138,210 H 205" fill="none" stroke="#8b949e" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="0" to="-24" dur="4.0s" repeatCount="indefinite"/></path>
+
+          <path id="flowInvLoad" d="M 260,350 V 265" fill="none" stroke="#29c4f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10" opacity="0" style="display:none"><animate attributeName="stroke-dashoffset" from="-24" to="0" dur="0.8s" repeatCount="indefinite"/></path>
+
+          <!-- Battery moved left and scaled 80% -->
+          <g transform="translate(-36.6, 25.4) scale(0.8)">
+            <g id="battGlow">
+              <rect x="77" y="127" width="14" height="9" rx="3" fill="url(#battCapGrad)"/>
+              <rect x="79" y="128" width="10" height="3" rx="1.5" fill="rgba(255,255,255,0.45)"/>
+              <rect x="49" y="135" width="70" height="132" rx="10" fill="url(#battShellGrad)"/>
+              <rect x="51" y="137" width="66" height="7" rx="4" fill="url(#battCapGrad)"/>
+              <rect x="51" y="258" width="66" height="9" rx="4" fill="url(#battCapGrad)"/>
+              <rect x="53" y="145" width="62" height="118" rx="8" fill="#0f1214"/>
+              <rect id="battFillBar" x="53" y="263" width="62" height="0" rx="0" fill="#3fb950" clip-path="url(#battBodyClip)"/>
+              <rect id="battFillHL" x="53" y="263" width="62" height="0" rx="0" fill="url(#battFillHighlight)" clip-path="url(#battBodyClip)" style="pointer-events:none"/>
+              <rect x="49" y="135" width="70" height="132" rx="10" fill="url(#battGlassBody)" style="pointer-events:none"/>
+              <g id="battBoltGroup" opacity="0">
+                <polygon points="86,176 74,199 82,199 77,223 93,195 85,195 97,176" fill="#1a4aff" stroke="rgba(100,150,255,.5)" stroke-width="0.8" filter="url(#battGlowBolt)">
+                  <animate attributeName="opacity" values="0.5;1;0.5" dur="1.0s" repeatCount="indefinite"/>
+                </polygon>
+              </g>
             </g>
+            <text id="fcBattVal" x="84" y="211" text-anchor="middle" font-size="18" font-weight="900" fill="#fff">--%</text>
+            <text id="battVoltageFlow" x="84" y="285" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">-- V</text>
+            <text id="battCurrFlow" x="125" y="155" font-size="10" font-weight="600" fill="#fff">-- A</text>
+            <text id="battPwrFlow" x="125" y="170" font-size="10" font-weight="600" fill="#cde">-- W</text>
           </g>
-          <text id="fcBattVal" x="84" y="211" text-anchor="middle" font-size="18" font-weight="900" fill="#fff">--%</text>
-          <text id="battVoltageFlow" x="84" y="285" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">-- V</text>
-          <text id="battCurrFlow" x="125" y="155" font-size="10" font-weight="600" fill="#fff">-- A</text>
-          <text id="battPwrFlow" x="125" y="170" font-size="10" font-weight="600" fill="#cde">-- W</text>
-          <rect id="gridGlowBorder" x="397" y="128" width="96" height="96" rx="15" fill="none" stroke="#e05c00" stroke-width="3" opacity="0" style="transition:opacity .4s;filter:drop-shadow(0 0 8px #e05c00)"/>
-          <rect x="401" y="132" width="88" height="88" rx="12" fill="url(#nodeBezelGrad)"/>
-          <rect x="407" y="138" width="76" height="76" rx="8" fill="#111"/>
-          <rect x="407" y="138" width="26" height="76" fill="url(#nodeGlassRef)"/>
-          <g id="fcGridRing" filter="url(#nodeGlowRed)" fill="#e05c00">
-            <rect x="416" y="147" width="25" height="25" rx="2" opacity="0.9"/>
-            <rect x="447" y="147" width="25" height="25" rx="2" opacity="0.9"/>
-            <rect x="416" y="178" width="25" height="25" rx="2" opacity="0.9"/>
-            <rect x="447" y="178" width="25" height="25" rx="2" opacity="0.9"/>
-            <rect x="416" y="147" width="25" height="10" rx="2" fill="white" fill-opacity="0.2"/>
-            <rect x="447" y="147" width="25" height="10" rx="2" fill="white" fill-opacity="0.2"/>
-          </g>
-          <text id="fcGridVal" x="445" y="239" text-anchor="middle" font-size="13" font-weight="700" fill="#e05c00">-- W</text>
+
+          <!-- ========== GRID NODE replaced with PNG ========== -->
+          <image id="gridIconImg" href="/local/grid-icon.png" x="407" y="138" width="110" height="110" style="filter: drop-shadow(0 0 8px #e05c00); opacity: 1;"/>
+          <text id="fcGridVal" x="445" y="" text-anchor="middle" font-size="13" font-weight="700" fill="#e05c00">-- W</text>
           <text id="gridImportVal" x="395" y="163" text-anchor="end" font-size="10" font-weight="600" fill="#cde">-- kWh</text>
+
           <rect id="fcInvRect" x="205" y="155" width="110" height="110" rx="18" fill="#161b22" stroke="#f4a93b" stroke-width="4"/>
           <text x="260" y="203" text-anchor="middle" font-size="14" font-weight="800" fill="#f4a93b" letter-spacing="1">INV</text>
           <text id="invTempFlow" x="260" y="222" text-anchor="middle" font-size="12" font-weight="700" fill="#58a6ff">-- °C</text>
@@ -316,21 +309,13 @@ class KFlowCard extends HTMLElement {
           <text x="515" y="373" text-anchor="end" font-size="9" fill="#8b949e" letter-spacing="1.5">ENDURANCE</text>
           <text id="flowEndurance" x="515" y="393" text-anchor="end" font-size="15" font-weight="700" fill="#8b949e">--</text>
           <text id="flowEnduranceSub" x="515" y="410" text-anchor="end" font-size="9" fill="#8b949e66">remaining</text>
-          <g id="homeBoxGroup">
-            <rect x="216" y="327" width="88" height="88" rx="12" fill="url(#nodeBezelGrad)"/>
-            <rect x="222" y="333" width="76" height="76" rx="8" fill="#111"/>
-            <rect x="222" y="333" width="26" height="76" fill="url(#nodeGlassRef)"/>
-            <g id="fcLoadRing" fill="#F7F6D3">
-              <path d="M260,340 L228,363 L292,363 Z" opacity="0.9"/>
-              <rect x="233" y="363" width="54" height="32" rx="2" opacity="0.9"/>
-              <rect x="251" y="375" width="18" height="20" rx="1" fill="#111"/>
-              <path d="M260,340 L242,351 L278,351 Z" fill="white" fill-opacity="0.2"/>
-            </g>
-          </g>
+
+          <!-- ========== HOME NODE replaced with PNG ========== -->
+          <image id="homeIconImg" href="/local/home-icon.png" x="190" y="340" width="150" height="140" style="filter: drop-shadow(0 0 8px #ffb228); opacity: 1;"/>
           <text id="fcLoadVal" x="312" y="377" font-size="13" font-weight="700" fill="#F7F6D3">-- W</text>
         </svg>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
         <div style="flex:1;display:flex;align-items:center;gap:4px;">
           <span style="font-size:.42rem;color:#8b949e;letter-spacing:1px;text-transform:uppercase;">PV</span>
           <div style="flex:1;display:flex;gap:2px;align-items:flex-end;height:10px;" id="pvBlocks"></div>
@@ -431,7 +416,6 @@ class KFlowCard extends HTMLElement {
       if (pvGroup) pvGroup.innerHTML = this._buildPvWaveHTML(sun.bx, sun.by, pvTotal);
     }
 
-    // ── Flow lines speed & colour ──────────────────────────
     const flowDur = (w) => Math.max(0.5, 3.0 - (Math.min(Math.abs(w), 8000) / 8000) * 2.5).toFixed(2) + 's';
     const setFlow = (id, show, watts, durStr, color) => {
       const el = getEl(id);
@@ -456,17 +440,14 @@ class KFlowCard extends HTMLElement {
     let battShowOut = false;
 
     if (absBattPwr < 10) {
-      // hide completely (original kanc.html behaviour)
       battShowIn = false;
       battShowOut = false;
     } else if (absBattPwr < 50) {
-      // show but grey and very slow
       battShowIn = showBattIn;
       battShowOut = showBattOut;
       battLineColor = '#8b949e';
       battDur = '4.0s';
     } else {
-      // active flow, colour based on direction
       battShowIn = showBattIn;
       battShowOut = showBattOut;
       battDur = flowDur(absBattPwr);
@@ -485,18 +466,28 @@ class KFlowCard extends HTMLElement {
     const showGridIn = gridActive > 10, showGridOut = gridActive < -10;
     const showInvLoad = load > 10;
 
-    // Grid lines – colour always red, speed variable
     setFlow('flowGridIn', showGridIn, gridActive, flowDur(gridActive), '#FF2929');
     setFlow('flowGridOut', showGridOut, Math.abs(gridActive), flowDur(Math.abs(gridActive)), '#FF2929');
 
-    // Home line – dominant source colour
     const absGrid = Math.abs(gridActive);
     const absBatt = Math.abs(battPwr < -10 ? battPwr : 0);
     const domColor = (absGrid >= pvTotal && absGrid >= absBatt) ? '#f39c4b' :
                      (absBatt >= pvTotal) ? '#f39c4b' : '#f4d03f';
     setFlow('flowInvLoad', showInvLoad, load, flowDur(load), domColor);
 
-    // ── Battery fill shape ─────────────────────────────────
+    const gridImg = getEl('gridIconImg');
+    if (gridImg) {
+      const noGrid = Math.abs(gridActive) < 10;
+      gridImg.style.filter = noGrid ? 'none' : 'drop-shadow(0 0 8px #e05c00)';
+      gridImg.style.opacity = noGrid ? '0.4' : '1';
+    }
+    const homeImg = getEl('homeIconImg');
+    if (homeImg) {
+      const homeActive = load > 10;
+      homeImg.style.filter = homeActive ? 'drop-shadow(0 0 10px ' + domColor + ') drop-shadow(0 0 4px ' + domColor + '88)' : 'none';
+      homeImg.style.opacity = homeActive ? '1' : '0.7';
+    }
+
     const fill = this._battFill(battSoc);
     const bf = getEl('battFillBar');
     if (bf) { bf.setAttribute('y', fill.y); bf.setAttribute('height', fill.height); bf.setAttribute('fill', fill.color); bf.setAttribute('filter', fill.filter); }
@@ -507,7 +498,6 @@ class KFlowCard extends HTMLElement {
     const bolt = getEl('battBoltGroup');
     if (bolt) bolt.setAttribute('opacity', (isCharging && absBattPwr >= 10) ? '1' : '0');
 
-    // ── Pwr bar ────────────────────────────────────────────
     const pwrBar = getEl('pwrBar');
     if (pwrBar) {
       pwrBar.style.width = Math.min(absBattPwr / 6000 * 100, 100).toFixed(1) + '%';
@@ -519,7 +509,6 @@ class KFlowCard extends HTMLElement {
       }
     }
 
-    // ── Status badge ───────────────────────────────────────
     const badge = getEl('battStatusBadge');
     if (badge) {
       badge.textContent = absBattPwr < 50 ? 'IDLE' : (isCharging ? 'CHG' : 'DISCHG');
@@ -527,7 +516,6 @@ class KFlowCard extends HTMLElement {
       badge.style.background = absBattPwr < 50 ? '#21262d' : (isCharging ? 'rgba(0,215,255,.14)' : 'rgba(60,232,120,.14)');
     }
 
-    // ── Endurance ──────────────────────────────────────────
     const remWh = (remCap / 314) * 16076, totalWh = 16076;
     let endText = '--', endColor = '#8b949e', endSub = 'standby', endSubColor = '#8b949e55';
     if (isCharging && absBattPwr > 10) {
@@ -542,7 +530,6 @@ class KFlowCard extends HTMLElement {
     if (fe) { fe.textContent = endText; fe.setAttribute('fill', endColor); }
     if (fs) { fs.textContent = endSub; fs.setAttribute('fill', endSubColor); }
 
-    // ── Inverter & other labels ────────────────────────────
     const invLoadPct = Math.min(load / 6000 * 100, 100).toFixed(0);
     const invLoadColor = invLoadPct <= 50 ? '#3fb950' : '#f39c4b';
     const invTempColor = invTemp <= 45 ? '#58a6ff' : invTemp <= 55 ? '#f39c4b' : '#f85149';
@@ -556,36 +543,24 @@ class KFlowCard extends HTMLElement {
       invRect.style.filter = load > 10 ? 'drop-shadow(0 0 10px #f4a93b)' : 'drop-shadow(0 0 4px #f4a93b66)';
     }
 
-    // ── Grid node glow ─────────────────────────────────────
-    const noGrid = Math.abs(gridActive) < 10;
-    const gridRing = getEl('fcGridRing');
-    if (gridRing) {
-      gridRing.setAttribute('fill', noGrid ? '#2a2a2a' : '#e05c00');
-      gridRing.setAttribute('filter', noGrid ? 'none' : 'url(#nodeGlowRed)');
-      gridRing.style.animation = !noGrid ? 'svgPulseOrange 1.4s ease-in-out infinite' : 'none';
-    }
     const gvEl = getEl('fcGridVal');
-    if (gvEl) { gvEl.textContent = Math.abs(gridActive).toFixed(0) + ' W'; gvEl.setAttribute('fill', noGrid ? '#3a3a3a' : '#e05c00'); }
-    const gb = getEl('gridGlowBorder');
-    if (gb) gb.setAttribute('opacity', noGrid ? '0' : '1');
-
-    // ── Home node ──────────────────────────────────────────
-    const homeBox = getEl('homeBoxGroup');
-    const loadRing = getEl('fcLoadRing');
-    if (loadRing) {
-      const homeActive = load > 10;
-      loadRing.setAttribute('fill', homeActive ? '#F7F6D3' : '#4a4a38');
-      if (homeBox) homeBox.style.filter = homeActive ? 'drop-shadow(0 0 10px ' + domColor + ') drop-shadow(0 0 4px ' + domColor + '88)' : 'none';
+    if (gvEl) {
+      const noGrid = Math.abs(gridActive) < 10;
+      gvEl.textContent = Math.abs(gridActive).toFixed(0) + ' W';
+      gvEl.setAttribute('fill', noGrid ? '#3a3a3a' : '#e05c00');
     }
-    const lv = getEl('fcLoadVal');
-    if (lv) { lv.textContent = load >= 1000 ? (load / 1000).toFixed(2) + ' kW' : load.toFixed(0) + ' W'; lv.setAttribute('fill', load > 10 ? domColor : '#8b949e'); }
 
-    // ── PV1/PV2 ────────────────────────────────────────────
+    const lv = getEl('fcLoadVal');
+    if (lv) {
+      const homeActive = load > 10;
+      lv.textContent = load >= 1000 ? (load / 1000).toFixed(2) + ' kW' : load.toFixed(0) + ' W';
+      lv.setAttribute('fill', homeActive ? domColor : '#8b949e');
+    }
+
     const e1 = getEl('pv1FlowVal'), e2 = getEl('pv2FlowVal');
     if (e1) e1.textContent = pv1 >= 1000 ? (pv1 / 1000).toFixed(2) + ' kW' : pv1.toFixed(0) + ' W';
     if (e2) e2.textContent = pv2 >= 1000 ? (pv2 / 1000).toFixed(2) + ' kW' : pv2.toFixed(0) + ' W';
 
-    // ── Battery stats ──────────────────────────────────────
     ['bTemp1', 'bTemp2', 'bMos'].forEach((id, i) => {
       const el = getEl(id);
       if (el) el.textContent = [temp1, temp2, mos][i].toFixed(1) + ' °C';
@@ -595,7 +570,6 @@ class KFlowCard extends HTMLElement {
     getEl('bMaxCell').textContent = maxCell.toFixed(3) + ' V';
     getEl('invBattDis2').textContent = battDis + ' kWh';
 
-    // ── GoodWe summary ─────────────────────────────────────
     getEl('invTodayPv').textContent = todayPv + ' kWh';
     getEl('invTodayBattChg').textContent = todayBattChg + ' kWh';
     getEl('invTodayLoad').textContent = todayLoad + ' kWh';
@@ -603,7 +577,6 @@ class KFlowCard extends HTMLElement {
     if (invRemCap) { invRemCap.textContent = remCap.toFixed(1) + ' Ah'; invRemCap.style.color = this._remCapColor((remCap / 314) * 100); }
     getEl('gridImportVal').textContent = gridImport.toFixed(2) + ' kWh';
 
-    // ── PV blocks ──────────────────────────────────────────
     const pvBlocks = getEl('pvBlocks');
     if (pvBlocks) {
       const maxW = 7500, total = 20, lit = Math.round((pvTotal / maxW) * total);
@@ -616,7 +589,6 @@ class KFlowCard extends HTMLElement {
       pvBlocks.innerHTML = html;
     }
 
-    // ── Battery current/power labels ────────────────────────
     getEl('battCurrFlow').textContent = battCurr.toFixed(1) + ' A';
     getEl('battPwrFlow').textContent = absBattPwr.toFixed(0) + ' W';
     getEl('battVoltageFlow').textContent = battVolt.toFixed(1) + ' V';
