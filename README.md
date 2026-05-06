@@ -2,7 +2,8 @@
 
 A real‑time, animated energy flow dashboard card – monitor solar, battery, grid, and home consumption with a sleek SVG diagram.
 
-<img width="1145" height="1601" alt="Screenshot_2026-05-05-20-24-06-66_cbf47468f7ecfbd8ebcc46bf9cc626da" src="https://github.com/user-attachments/assets/7229636f-3c10-42a3-b767-89bc9f4d99e9" />
+<img width="1132" height="1603" alt="Screenshot_2026-05-05-19-02-17-29_cbf47468f7ecfbd8ebcc46bf9cc626da" src="https://github.com/user-attachments/assets/90b301cb-ae96-444e-a161-87cc83982be3" />
+
 <img width="1130" height="1610" alt="Screenshot_2026-05-05-19-06-37-85_cbf47468f7ecfbd8ebcc46bf9cc626da" src="https://github.com/user-attachments/assets/908209a4-b845-42a9-a5ef-ded329020fe3" />
 
 
